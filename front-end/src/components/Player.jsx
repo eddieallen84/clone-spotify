@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faCirclePlay,
@@ -7,7 +7,6 @@ import {
   faForwardStep,
 } from "@fortawesome/free-solid-svg-icons";
 import { Link } from "react-router-dom";
-import { useRef, useEffect } from "react";
 
 const formatTime = (timeInSeconds) => {
   const minutes = Math.floor(timeInSeconds / 60)
@@ -33,57 +32,96 @@ const Player = ({
   randomIdFromArtist,
   randomId2FromArtist,
   audio,
+  songsArray,
+  currentSongIndex,
+  setCurrentSongIndex,
 }) => {
-  // const audioPlayer...
-  const audioPlayer = useRef();
-  const progressBar = useRef();
+  const audioPlayer = useRef(null);
+  const progressBar = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(formatTime(0));
+  const [currentAudioUrl, setCurrentAudioUrl] = useState(audio);
   const durationInSeconds = timeInSeconds(duration);
 
-  // console.log(durationInSeconds);
+  const currentSong = songsArray[currentSongIndex] || {};
 
-  // função
-  // console.log(audioPlayer.current.play());
+  // Atualiza a URL do áudio sempre que o índice da música mudar
+  useEffect(() => {
+    if (currentSong.audioUrl) {
+      setCurrentAudioUrl(currentSong.audioUrl); // Atualiza a URL do áudio
+    }
+  }, [currentSongIndex, currentSong.audioUrl]);
+
+  // Função de play/pause
   const playPause = () => {
-    isPlaying ? audioPlayer.current.pause() : audioPlayer.current.play();
-
-    setIsPlaying(!isPlaying);
-
-    // console.log(formatTime(audioPlayer.current.currentTime));
+    if (audioPlayer.current) {
+      if (isPlaying) {
+        audioPlayer.current.pause();
+      } else {
+        audioPlayer.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
   };
 
+  // Atualiza o progresso do áudio
   useEffect(() => {
     const intervalId = setInterval(() => {
-      if (isPlaying)
+      if (isPlaying) {
         setCurrentTime(formatTime(audioPlayer.current.currentTime));
-
-      progressBar.current.style.setProperty(
-        "--_progress",
-        (audioPlayer.current.currentTime / durationInSeconds) * 100 + "%"
-      );
+        progressBar.current.style.setProperty(
+          "--_progress",
+          (audioPlayer.current.currentTime / durationInSeconds) * 100 + "%"
+        );
+      }
     }, 1000);
 
     return () => clearInterval(intervalId);
   }, [isPlaying]);
 
-  // setIsPlaying(false)
+  // Função para ir para a próxima música
+  const nextSong = () => {
+    const nextIndex = (currentSongIndex + 1) % songsArray.length;
+    setCurrentSongIndex(nextIndex);
+  };
+
+  // Função para voltar para a música anterior
+  const prevSong = () => {
+    const prevIndex = (currentSongIndex - 1 + songsArray.length) % songsArray.length;
+    setCurrentSongIndex(prevIndex);
+  };
+
+  // Recarregar o áudio e tocar quando a URL de áudio for atualizada
+  useEffect(() => {
+    if (audioPlayer.current && currentAudioUrl) {
+      audioPlayer.current.load(); // Carregar o áudio antes de tocar
+      setIsPlaying(false); // Não tocar imediatamente
+    }
+  }, [currentAudioUrl]); // Esse effect depende de currentAudioUrl
+
+  // Garantir que o áudio toque quando estiver pronto
+  const handleCanPlay = () => {
+    if (audioPlayer.current) {
+      audioPlayer.current.play();
+      setIsPlaying(true); // Inicia a reprodução
+    }
+  };
 
   return (
     <div className="player">
       <div className="player__controllers">
         <Link to={`/song/${randomIdFromArtist}`}>
-          <FontAwesomeIcon className="player__icon" icon={faBackwardStep} />
+          <FontAwesomeIcon className="player__icon" icon={faBackwardStep} onClick={prevSong} />
         </Link>
 
         <FontAwesomeIcon
           className="player__icon player__icon--play"
           icon={isPlaying ? faCirclePause : faCirclePlay}
-          onClick={() => playPause()}
+          onClick={playPause}
         />
 
         <Link to={`/song/${randomId2FromArtist}`}>
-          <FontAwesomeIcon className="player__icon" icon={faForwardStep} />
+          <FontAwesomeIcon className="player__icon" icon={faForwardStep} onClick={nextSong} />
         </Link>
       </div>
 
@@ -97,7 +135,16 @@ const Player = ({
         <p>{duration}</p>
       </div>
 
-      <audio ref={audioPlayer} src={audio}></audio>
+      {/* Verifica se a música está disponível antes de tentar carregar */}
+      {currentAudioUrl ? (
+        <audio
+          ref={audioPlayer}
+          src={currentAudioUrl}
+          onCanPlayThrough={handleCanPlay} // Garante que o áudio comece a tocar quando estiver pronto
+        ></audio>
+      ) : (
+        <p>Carregando música...</p>
+      )}
     </div>
   );
 };
