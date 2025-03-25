@@ -95,17 +95,20 @@ const Player = ({
   useEffect(() => {
     if (audioPlayer.current && currentAudioUrl) {
       audioPlayer.current.load(); // Carregar o áudio antes de tocar
-      setIsPlaying(false); // Não tocar imediatamente
+      audioPlayer.current.play(); // Começar a tocar a nova música
+      setIsPlaying(true); // Marcar como tocando
     }
   }, [currentAudioUrl]); // Esse effect depende de currentAudioUrl
 
-  // Garantir que o áudio toque quando estiver pronto
-  const handleCanPlay = () => {
+  // Garantir que o áudio seja reiniciado quando o índice mudar
+  useEffect(() => {
     if (audioPlayer.current) {
-      audioPlayer.current.play();
-      setIsPlaying(true); // Inicia a reprodução
+      audioPlayer.current.pause(); // Pausa o áudio atual
+      audioPlayer.current.currentTime = 0; // Reinicia a música
+      audioPlayer.current.load(); // Recarrega o áudio
+      setIsPlaying(false); // Reseta o estado de "tocar"
     }
-  };
+  }, [currentSongIndex]); // Esse effect é acionado sempre que o índice muda
 
   return (
     <div className="player">
@@ -140,7 +143,13 @@ const Player = ({
         <audio
           ref={audioPlayer}
           src={currentAudioUrl}
-          onCanPlayThrough={handleCanPlay} // Garante que o áudio comece a tocar quando estiver pronto
+          onCanPlayThrough={() => {
+            // Garantir que o áudio seja tocado quando estiver pronto
+            if (audioPlayer.current && !isPlaying) {
+              audioPlayer.current.play();
+              setIsPlaying(true);
+            }
+          }}
         ></audio>
       ) : (
         <p>Carregando música...</p>
