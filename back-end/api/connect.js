@@ -4,7 +4,7 @@
 import { MongoClient } from "mongodb";
 
 const URI =
-  "mongodb+srv://eddiexd:d4frWYTlPoRjq1l7@cluster0.1ah5j.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+  "mongodb+srv://eddiexd:j9VEnfhlaQbkmSzL@cluster0.1ah5j.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 
   const client = new MongoClient(URI, {
     maxPoolSize: 10, // Número máximo de conexões no pool
